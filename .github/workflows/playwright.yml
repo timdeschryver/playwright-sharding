@@ -1,12 +1,50 @@
 name: Playwright Tests
+
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+
 jobs:
+  install:
+    timeout-minutes: 60
+    name: 🔍 Install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "14.x"
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        id: cache-node-modules
+        with:
+          path: |
+            node_modules
+          key: modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Cache Playwright binaries
+        uses: actions/cache@v3
+        id: cache-playwright
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
   test:
     name: 🧪 Test (${{ matrix.shard }})
+    needs: install
     timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
@@ -15,15 +53,28 @@ jobs:
         shard: ["1/2", "2/2"]
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: "14.x"
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+          key: modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Cache Playwright
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+
       - name: Run Playwright tests
         run: npx playwright test --shard=${{ matrix.shard }}
+
       - uses: actions/upload-artifact@v3
         if: always()
         with:
