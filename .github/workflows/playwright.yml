@@ -13,10 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-node@v3
-        with:
-          node-version: "14.x"
 
       - name: Cache node_modules
         uses: actions/cache@v3
@@ -43,20 +40,17 @@ jobs:
         run: npx playwright install --with-deps
 
   test:
-    name: 🧪 Test (${{ matrix.shard }})
+    name: 🧪 Test (${{ matrix.shard }}/${{ strategy.job-total }})
     needs: install
     timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: ["1/2", "2/2"]
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-node@v3
-        with:
-          node-version: "14.x"
 
       - name: Cache node_modules
         uses: actions/cache@v3
@@ -73,11 +67,11 @@ jobs:
           key: playwright-${{ hashFiles('package-lock.json') }}
 
       - name: Run Playwright tests
-        run: npx playwright test --shard=${{ matrix.shard }}
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - uses: actions/upload-artifact@v3
         if: always()
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-report-${{ matrix.shard }}_${{ strategy.job-total }}
+          path: playwright-report
           retention-days: 30
