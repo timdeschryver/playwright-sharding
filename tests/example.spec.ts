@@ -244,7 +244,11 @@ test.describe('Editing', () => {
 });
 
 test.describe('Counter', () => {
-  test('should display the current number of todo items', async ({ page }) => {
+  test('should display the current number of todo items', async ({ page, browserName }) => {
+    if(browserName === 'firefox') {
+      throw new Error('This fails.')
+    }
+
     await page.locator('.new-todo').fill(TODO_ITEMS[0]);
     await page.locator('.new-todo').press('Enter');
     await expect(page.locator('.todo-count')).toContainText('1');
